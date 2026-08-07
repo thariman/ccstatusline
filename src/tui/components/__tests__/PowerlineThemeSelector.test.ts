@@ -98,11 +98,12 @@ describe('PowerlineThemeSelector helpers', () => {
             color: 'ansi256:16',
             backgroundColor: 'ansi256:167'
         });
-        expect(updatedSettings?.lines[0]?.[1]).toEqual(settings.lines[0]?.[1]);
-        expect(updatedSettings?.lines[0]?.[2]).toMatchObject({
+        expect(updatedSettings?.lines[0]?.[1]).toMatchObject({
             color: 'ansi256:235',
             backgroundColor: 'ansi256:214'
         });
+        // The default layout's separator (index 2) is left untouched.
+        expect(updatedSettings?.lines[0]?.[2]).toEqual(settings.lines[0]?.[2]);
     });
 
     it('returns null when the requested theme cannot be customized', () => {
