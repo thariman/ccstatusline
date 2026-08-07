@@ -20,6 +20,7 @@ import type {
 } from '../types/Settings';
 import type { WidgetItem } from '../types/Widget';
 import {
+    PINNED_INSTALL_COMMANDS,
     buildStatusLineCommand,
     classifyInstallation,
     getClaudeSettingsPath,
@@ -211,8 +212,8 @@ function getPinnedMismatchItems(
             disabled: !canRunPackageManager,
             sublabel: canRunPackageManager ? undefined : `(${mismatch.packageManager} not installed)`,
             description: `Runs ${mismatch.packageManager === 'npm'
-                ? `npm install -g ccstatusline@${mismatch.runningVersion}`
-                : `bun add -g ccstatusline@${mismatch.runningVersion}`}`
+                ? PINNED_INSTALL_COMMANDS.NPM(mismatch.runningVersion)
+                : PINNED_INSTALL_COMMANDS.BUN(mismatch.runningVersion)}`
         });
     }
 

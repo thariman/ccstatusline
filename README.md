@@ -14,11 +14,19 @@
 **🎨 A highly customizable status line formatter for Claude Code CLI**
 *Display model info, git branch, token usage, and other metrics in your terminal*
 
-[![npm version](https://img.shields.io/npm/v/ccstatusline.svg)](https://www.npmjs.com/package/ccstatusline)
-[![npm downloads](https://img.shields.io/npm/dm/ccstatusline.svg)](https://www.npmjs.com/package/ccstatusline)
+> **🔱 Fork notice:** This is [@thariman](https://github.com/thariman)'s fork of
+> [sirmalloc/ccstatusline](https://github.com/sirmalloc/ccstatusline), published on npm as
+> [`@thariman/ccstatusline`](https://www.npmjs.com/package/@thariman/ccstatusline). It adds
+> **multi-account support**: when running multiple Claude accounts on one machine via
+> `CLAUDE_CONFIG_DIR`, each session's status line shows its own account's usage (per-config-dir
+> macOS keychain lookup), and concurrent sessions no longer thrash each other's usage cache
+> (per-config-dir cache/lock files).
+
+[![npm version](https://img.shields.io/npm/v/%40thariman%2Fccstatusline.svg)](https://www.npmjs.com/package/@thariman/ccstatusline)
+[![npm downloads](https://img.shields.io/npm/dm/%40thariman%2Fccstatusline.svg)](https://www.npmjs.com/package/@thariman/ccstatusline)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/sirmalloc/ccstatusline/blob/main/LICENSE)
-[![Node.js Version](https://img.shields.io/node/v/ccstatusline.svg)](https://nodejs.org)
-[![install size](https://packagephobia.com/badge?p=ccstatusline)](https://packagephobia.com/result?p=ccstatusline)
+[![Node.js Version](https://img.shields.io/node/v/%40thariman%2Fccstatusline.svg)](https://nodejs.org)
+[![install size](https://packagephobia.com/badge?p=@thariman/ccstatusline)](https://packagephobia.com/result?p=@thariman/ccstatusline)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/sirmalloc/ccstatusline/graphs/commit-activity)
 
 [![Mentioned in Awesome Claude Code](https://awesome.re/mentioned-badge.svg)](https://github.com/hesreallyhim/awesome-claude-code)
@@ -46,6 +54,12 @@
 <br />
 
 ## 🆕 Recent Updates
+
+### v2.2.28 - Multi-account support (fork)
+
+- **👥 Multi-account usage** - Sessions launched with different `CLAUDE_CONFIG_DIR` values each show their own account's usage: the macOS keychain lookup now derives the per-config-dir service name (`Claude Code-credentials-<sha256(dir)[:8]>`) instead of always reading the default account's entry.
+- **🗂️ Per-account usage cache** - The usage cache and fetch lock are keyed per config dir, so concurrent sessions from different accounts no longer thrash each other's cache or trigger spurious timeout states.
+- **📦 Scoped package** - Published as `@thariman/ccstatusline`; the TUI installer and update checker follow the scoped package.
 
 ### v2.2.27 - Portable configuration import and export
 
@@ -299,10 +313,10 @@ The localizations in this section are third-party forks maintained outside this 
 
 ```bash
 # Run the configuration TUI with npm
-npx -y ccstatusline@latest
+npx -y @thariman/ccstatusline@latest
 
 # Or with Bun (faster)
-bunx -y ccstatusline@latest
+bunx -y @thariman/ccstatusline@latest
 ```
 
 Both commands launch the same TUI. During the initial setup flow, choose **Pinned global install** if you want Claude Code to stay on the ccstatusline version you are running instead of following `@latest`; the TUI will install that version globally with npm or Bun and write the pinned `ccstatusline` command to Claude Code settings. After a pinned install, you can run `ccstatusline` directly to launch the TUI in the future.
@@ -345,20 +359,28 @@ When you install from the TUI, ccstatusline writes a `statusLine` command object
 {
   "statusLine": {
     "type": "command",
-    "command": "npx -y ccstatusline@latest",
+    "command": "npx -y @thariman/ccstatusline@latest",
     "padding": 0,
     "refreshInterval": 10
   }
 }
 ```
 
+> 💡 **Default setting used on this fork's machines** (in each account's `settings.json`,
+> i.e. `~/.claude/settings.json` and any `CLAUDE_CONFIG_DIR` directory's `settings.json`):
+> ```json
+> "statusLine": { "type": "command", "command": "bunx -y @thariman/ccstatusline@latest", "padding": 0 }
+> ```
+> The account each status line reports on is selected by the `CLAUDE_CONFIG_DIR` the Claude Code
+> session was launched with — the command itself is identical for every account.
+
 `refreshInterval` is written only when your Claude Code version supports it (>=2.1.97). The TUI can set it to `1-60` seconds, or remove it by leaving the input empty.
 
 Other supported command values are:
-- `bunx -y ccstatusline@latest`
+- `bunx -y @thariman/ccstatusline@latest`
 - `ccstatusline` (for self-managed/global installs)
 
-For pinned installs, launch the TUI with `npx -y ccstatusline@latest` or `bunx -y ccstatusline@latest`, then choose **Pinned global install**. The TUI pins the active version by installing it globally and writing `"command": "ccstatusline"` to `settings.json`; afterward, you can run `ccstatusline` directly to open the TUI.
+For pinned installs, launch the TUI with `npx -y @thariman/ccstatusline@latest` or `bunx -y @thariman/ccstatusline@latest`, then choose **Pinned global install**. The TUI pins the active version by installing it globally and writing `"command": "ccstatusline"` to `settings.json`; afterward, you can run `ccstatusline` directly to open the TUI.
 
 </details>
 
@@ -433,8 +455,8 @@ Give a ⭐ if this project helped you!
 [![GitHub forks](https://img.shields.io/github/forks/sirmalloc/ccstatusline?style=social)](https://github.com/sirmalloc/ccstatusline/network/members)
 [![GitHub watchers](https://img.shields.io/github/watchers/sirmalloc/ccstatusline?style=social)](https://github.com/sirmalloc/ccstatusline/watchers)
 
-[![npm version](https://img.shields.io/npm/v/ccstatusline.svg)](https://www.npmjs.com/package/ccstatusline)
-[![npm downloads](https://img.shields.io/npm/dm/ccstatusline.svg)](https://www.npmjs.com/package/ccstatusline)
+[![npm version](https://img.shields.io/npm/v/%40thariman%2Fccstatusline.svg)](https://www.npmjs.com/package/@thariman/ccstatusline)
+[![npm downloads](https://img.shields.io/npm/dm/%40thariman%2Fccstatusline.svg)](https://www.npmjs.com/package/@thariman/ccstatusline)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/sirmalloc/ccstatusline/blob/main/LICENSE)
 [![Made with Bun](https://img.shields.io/badge/Made%20with-Bun-000000.svg?logo=bun)](https://bun.sh)
 

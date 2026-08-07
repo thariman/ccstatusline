@@ -137,7 +137,22 @@ async function writeSettingsJson(settings: unknown, paths: SettingsPaths): Promi
 function inMemoryDefaults(): Settings {
     // Defaults held in memory only (version included via the schema default).
     // Returned on recovery without writing, so a malformed file is preserved.
-    return SettingsSchema.parse({});
+    // Fork: fresh machines get thariman's preferred padding and powerline
+    // theme on top of the schema defaults (the default lines layout lives in
+    // SettingsSchema itself).
+    return SettingsSchema.parse({
+        defaultPadding: ' ',
+        powerline: {
+            enabled: false,
+            separators: ['\uE0B0'],
+            separatorInvertBackground: [false],
+            startCaps: [],
+            endCaps: [],
+            theme: 'catppuccin',
+            autoAlign: true,
+            continueThemeAcrossLines: false
+        }
+    });
 }
 
 async function writeDefaultSettings(paths: SettingsPaths): Promise<Settings> {

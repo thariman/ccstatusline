@@ -7,6 +7,7 @@ import type {
 } from '../types/Settings';
 
 import {
+    CCSTATUSLINE_PACKAGE,
     PINNED_INSTALL_COMMANDS,
     buildStatusLineCommand,
     classifyInstallation,
@@ -17,7 +18,7 @@ import {
     getPackageManagerShellOptions
 } from './package-manager-executable';
 
-export const NPM_REGISTRY_LATEST_URL = 'https://registry.npmjs.org/ccstatusline/latest';
+export const NPM_REGISTRY_LATEST_URL = `https://registry.npmjs.org/${CCSTATUSLINE_PACKAGE}/latest`;
 const DEFAULT_REGISTRY_TIMEOUT_MS = 5000;
 const GLOBAL_UPDATE_TIMEOUT_MS = 120000;
 
@@ -300,8 +301,8 @@ export function runGlobalPackageInstall(
 ): Promise<void> {
     const executable = getPackageManagerExecutable(packageManager, platform);
     const args = packageManager === 'npm'
-        ? ['install', '-g', `ccstatusline@${version}`]
-        : ['add', '-g', `ccstatusline@${version}`];
+        ? ['install', '-g', `${CCSTATUSLINE_PACKAGE}@${version}`]
+        : ['add', '-g', `${CCSTATUSLINE_PACKAGE}@${version}`];
 
     return new Promise((resolve, reject) => {
         execFile(

@@ -25,19 +25,24 @@ const readFile = fs.promises.readFile;
 const writeFile = fs.promises.writeFile;
 const mkdir = fs.promises.mkdir;
 
+// npm package this fork is published as. The installed binary is still named
+// plain `ccstatusline` (package.json "bin"), so binary/PATH references below
+// intentionally do not use this.
+export const CCSTATUSLINE_PACKAGE = '@thariman/ccstatusline';
+
 export const CCSTATUSLINE_COMMANDS = {
-    AUTO_NPX: 'npx -y ccstatusline@latest',
-    AUTO_BUNX: 'bunx -y ccstatusline@latest',
+    AUTO_NPX: `npx -y ${CCSTATUSLINE_PACKAGE}@latest`,
+    AUTO_BUNX: `bunx -y ${CCSTATUSLINE_PACKAGE}@latest`,
     GLOBAL: 'ccstatusline',
     // Backward-compatible names for existing callers/tests.
-    NPM: 'npx -y ccstatusline@latest',
-    BUNX: 'bunx -y ccstatusline@latest',
+    NPM: `npx -y ${CCSTATUSLINE_PACKAGE}@latest`,
+    BUNX: `bunx -y ${CCSTATUSLINE_PACKAGE}@latest`,
     SELF_MANAGED: 'ccstatusline'
 };
 
 export const PINNED_INSTALL_COMMANDS = {
-    NPM: (version: string) => `npm install -g ccstatusline@${version}`,
-    BUN: (version: string) => `bun add -g ccstatusline@${version}`
+    NPM: (version: string) => `npm install -g ${CCSTATUSLINE_PACKAGE}@${version}`,
+    BUN: (version: string) => `bun add -g ${CCSTATUSLINE_PACKAGE}@${version}`
 };
 
 export type StatusLineCommandMode = 'auto-npx' | 'auto-bunx' | 'global';
@@ -56,7 +61,15 @@ export interface PackageCommandAvailability {
 }
 
 export function isKnownCommand(command: string): boolean {
-    const prefixes = [CCSTATUSLINE_COMMANDS.AUTO_NPX, CCSTATUSLINE_COMMANDS.AUTO_BUNX, CCSTATUSLINE_COMMANDS.GLOBAL];
+    const prefixes = [
+        CCSTATUSLINE_COMMANDS.AUTO_NPX,
+        CCSTATUSLINE_COMMANDS.AUTO_BUNX,
+        CCSTATUSLINE_COMMANDS.GLOBAL,
+        // Upstream (pre-fork) package commands still count as ccstatusline so
+        // machines configured before the @thariman scope migrate cleanly.
+        'npx -y ccstatusline@latest',
+        'bunx -y ccstatusline@latest'
+    ];
     // Also match local development commands (e.g., "bun run /path/to/ccstatusline.ts")
     return prefixes.some(prefix => command === prefix || command.startsWith(`${prefix} --config `))
         || /(?:^|[\s"'\\/])ccstatusline\.ts(?=$|[\s"'])/.test(command);
