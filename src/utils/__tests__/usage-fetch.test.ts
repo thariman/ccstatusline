@@ -6,11 +6,14 @@ import * as os from 'os';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import {
+    afterEach,
     describe,
     expect,
-    it
+    it,
+    vi
 } from 'vitest';
 
+import * as claudeSettings from '../claude-settings';
 import {
     __testing,
     parseUsageApiResponse
@@ -142,8 +145,16 @@ https.request = (...args) => {
 
 const { fetchUsageData } = await import(${JSON.stringify(usageModulePath)});
 
-const lockFile = path.join(os.homedir(), '.cache', 'ccstatusline', 'usage.lock');
-const cacheFile = path.join(os.homedir(), '.cache', 'ccstatusline', 'usage.json');
+// Mirrors getClaudeConfigDir()'s CLAUDE_CONFIG_DIR-or-default resolution and
+// usage-fetch.ts's getUsageCachePath/getUsageLockPath hash so the probe
+// checks the same per-config-dir cache/lock file the module under test uses.
+const crypto = require('crypto');
+const configDir = process.env.CLAUDE_CONFIG_DIR
+    ? path.resolve(process.env.CLAUDE_CONFIG_DIR)
+    : path.join(os.homedir(), '.claude');
+const configHash = crypto.createHash('sha256').update(configDir).digest('hex').slice(0, 16);
+const lockFile = path.join(os.homedir(), '.cache', 'ccstatusline', \`usage-\${configHash}.lock\`);
+const cacheFile = path.join(os.homedir(), '.cache', 'ccstatusline', \`usage-\${configHash}.json\`);
 const nowMs = Number(process.env.TEST_NOW_MS || Date.now());
 const requiredFields = JSON.parse(process.env.TEST_REQUIRED_FIELDS_JSON || '[]');
 Date.now = () => nowMs;
@@ -254,6 +265,14 @@ process.stdout.write(JSON.stringify({
 
 function parseLockContents(lockContents: string | null): { blockedUntil: number; error?: string } | null {
     return lockContents ? JSON.parse(lockContents) as { blockedUntil: number; error?: string } : null;
+}
+
+// Mirrors usage-fetch.ts's getUsageCachePath/getUsageLockPath naming (which
+// in turn mirrors jsonl-cache.ts's getBlockCachePath): filename is keyed by
+// a hash of the resolved config dir so seeded cache/lock files land where
+// the probed process will actually look for them.
+function getUsageCacheBaseName(configDir: string): string {
+    return `usage-${createHash('sha256').update(path.resolve(configDir)).digest('hex').slice(0, 16)}`;
 }
 
 describe('fetchUsageData error handling', () => {
@@ -698,7 +717,7 @@ describe('fetchUsageData error handling', () => {
             // CACHE_MAX_AGE. This exercises the file-cache fast path a real later
             // render takes, rather than depending on a lingering lock to suppress
             // the refetch.
-            const cacheMtimeMs = fs.statSync(path.join(home.home, '.cache', 'ccstatusline', 'usage.json')).mtimeMs;
+            const cacheMtimeMs = fs.statSync(path.join(home.home, '.cache', 'ccstatusline', `${getUsageCacheBaseName(home.claudeConfig)}.json`)).mtimeMs;
             const cachedResult = harness.runProbe({
                 claudeConfigDir: home.claudeConfig,
                 home: home.home,
@@ -741,7 +760,7 @@ describe('fetchUsageData error handling', () => {
             expect(result.second).toEqual(result.first);
             expect(result.requestCount).toBe(1);
 
-            const cacheMtimeMs = fs.statSync(path.join(home.home, '.cache', 'ccstatusline', 'usage.json')).mtimeMs;
+            const cacheMtimeMs = fs.statSync(path.join(home.home, '.cache', 'ccstatusline', `${getUsageCacheBaseName(home.claudeConfig)}.json`)).mtimeMs;
             const cachedResult = harness.runProbe({
                 claudeConfigDir: home.claudeConfig,
                 home: home.home,
@@ -784,7 +803,7 @@ describe('fetchUsageData error handling', () => {
             expect(result.second).toEqual(result.first);
             expect(result.requestCount).toBe(1);
 
-            const cacheMtimeMs = fs.statSync(path.join(home.home, '.cache', 'ccstatusline', 'usage.json')).mtimeMs;
+            const cacheMtimeMs = fs.statSync(path.join(home.home, '.cache', 'ccstatusline', `${getUsageCacheBaseName(home.claudeConfig)}.json`)).mtimeMs;
             const cachedResult = harness.runProbe({
                 claudeConfigDir: home.claudeConfig,
                 home: home.home,
@@ -869,7 +888,7 @@ describe('fetchUsageData error handling', () => {
             const home = harness.createTokenHome('account-switch');
             const cacheDir = path.join(home.home, '.cache', 'ccstatusline');
             fs.mkdirSync(cacheDir, { recursive: true });
-            const cacheFile = path.join(cacheDir, 'usage.json');
+            const cacheFile = path.join(cacheDir, `${getUsageCacheBaseName(home.claudeConfig)}.json`);
             // A complete cache written under a different account's token.
             fs.writeFileSync(cacheFile, JSON.stringify({ sessionUsage: 5, tokenHash: 'deadbeefdeadbeef' }));
             const seededMtimeMs = fs.statSync(cacheFile).mtimeMs;
@@ -900,8 +919,9 @@ describe('fetchUsageData error handling', () => {
             const home = harness.createTokenHome('account-switch-active-lock');
             const cacheDir = path.join(home.home, '.cache', 'ccstatusline');
             fs.mkdirSync(cacheDir, { recursive: true });
-            const cacheFile = path.join(cacheDir, 'usage.json');
-            const lockFile = path.join(cacheDir, 'usage.lock');
+            const cacheBaseName = getUsageCacheBaseName(home.claudeConfig);
+            const cacheFile = path.join(cacheDir, `${cacheBaseName}.json`);
+            const lockFile = path.join(cacheDir, `${cacheBaseName}.lock`);
             fs.writeFileSync(cacheFile, JSON.stringify({ sessionUsage: 5, tokenHash: 'deadbeefdeadbeef' }));
 
             const seededMtimeMs = fs.statSync(cacheFile).mtimeMs;
@@ -935,7 +955,7 @@ describe('fetchUsageData error handling', () => {
             const home = harness.createTokenHome('account-switch-rate-limit');
             const cacheDir = path.join(home.home, '.cache', 'ccstatusline');
             fs.mkdirSync(cacheDir, { recursive: true });
-            const cacheFile = path.join(cacheDir, 'usage.json');
+            const cacheFile = path.join(cacheDir, `${getUsageCacheBaseName(home.claudeConfig)}.json`);
             fs.writeFileSync(cacheFile, JSON.stringify({ sessionUsage: 5, tokenHash: 'deadbeefdeadbeef' }));
 
             const seededMtimeMs = fs.statSync(cacheFile).mtimeMs;
@@ -971,7 +991,7 @@ describe('fetchUsageData error handling', () => {
             const home = harness.createTokenHome('account-same');
             const cacheDir = path.join(home.home, '.cache', 'ccstatusline');
             fs.mkdirSync(cacheDir, { recursive: true });
-            const cacheFile = path.join(cacheDir, 'usage.json');
+            const cacheFile = path.join(cacheDir, `${getUsageCacheBaseName(home.claudeConfig)}.json`);
             const matchingHash = createHash('sha256').update('test-token').digest('hex').slice(0, 16);
             fs.writeFileSync(cacheFile, JSON.stringify({ sessionUsage: 5, tokenHash: matchingHash }));
             const seededMtimeMs = fs.statSync(cacheFile).mtimeMs;
@@ -1025,7 +1045,7 @@ describe('fetchUsageData error handling', () => {
             // CACHE_MAX_AGE. This exercises the file-cache fast path a real later
             // render takes, rather than depending on a lingering lock to suppress
             // the refetch.
-            const cacheMtimeMs = fs.statSync(path.join(home.home, '.cache', 'ccstatusline', 'usage.json')).mtimeMs;
+            const cacheMtimeMs = fs.statSync(path.join(home.home, '.cache', 'ccstatusline', `${getUsageCacheBaseName(home.claudeConfig)}.json`)).mtimeMs;
             const cachedResult = harness.runProbe({
                 claudeConfigDir: home.claudeConfig,
                 home: home.home,
@@ -1077,7 +1097,7 @@ describe('fetchUsageData error handling', () => {
             // CACHE_MAX_AGE. This exercises the file-cache fast path a real later
             // render takes, rather than depending on a lingering lock to suppress
             // the refetch.
-            const cacheMtimeMs = fs.statSync(path.join(home.home, '.cache', 'ccstatusline', 'usage.json')).mtimeMs;
+            const cacheMtimeMs = fs.statSync(path.join(home.home, '.cache', 'ccstatusline', `${getUsageCacheBaseName(home.claudeConfig)}.json`)).mtimeMs;
             const cachedResult = harness.runProbe({
                 claudeConfigDir: home.claudeConfig,
                 home: home.home,
@@ -1339,7 +1359,7 @@ describe('fetchUsageData error handling', () => {
         try {
             const home = harness.createTokenHome('legacy-lock');
             const lockDir = path.join(home.home, '.cache', 'ccstatusline');
-            const lockFile = path.join(lockDir, 'usage.lock');
+            const lockFile = path.join(lockDir, `${getUsageCacheBaseName(home.claudeConfig)}.lock`);
 
             fs.mkdirSync(lockDir, { recursive: true });
             fs.writeFileSync(lockFile, '');
@@ -1359,6 +1379,43 @@ describe('fetchUsageData error handling', () => {
         } finally {
             harness.cleanup();
         }
+    });
+});
+
+// Pure unit coverage for the per-config-dir cache/lock filenames (see the
+// comment on getConfigDirCacheHash in usage-fetch.ts): mirrors the two-profile
+// template in block-cache.test.ts, but doesn't need that suite's subprocess
+// harness because getUsageCachePath/getUsageLockPath compute their path lazily
+// per call (like jsonl-cache.ts's getBlockCachePath) instead of freezing it at
+// module-import time the way the old CACHE_FILE/LOCK_FILE constants did.
+describe('usage cache/lock path keying', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    function expectedUsageCacheBaseName(configDir: string): string {
+        return `usage-${createHash('sha256').update(path.resolve(configDir)).digest('hex').slice(0, 16)}`;
+    }
+
+    it('keys the cache and lock filenames by config dir, isolating two profiles', () => {
+        const profileA = path.join(os.tmpdir(), 'ccstatusline-usage-path-test-a');
+        const profileB = path.join(os.tmpdir(), 'ccstatusline-usage-path-test-b');
+
+        vi.spyOn(claudeSettings, 'getClaudeConfigDir').mockReturnValue(profileA);
+        const cachePathA = __testing.getUsageCachePath();
+        const lockPathA = __testing.getUsageLockPath();
+
+        vi.spyOn(claudeSettings, 'getClaudeConfigDir').mockReturnValue(profileB);
+        const cachePathB = __testing.getUsageCachePath();
+        const lockPathB = __testing.getUsageLockPath();
+
+        expect(path.basename(cachePathA)).toBe(`${expectedUsageCacheBaseName(profileA)}.json`);
+        expect(path.basename(lockPathA)).toBe(`${expectedUsageCacheBaseName(profileA)}.lock`);
+        expect(path.basename(cachePathB)).toBe(`${expectedUsageCacheBaseName(profileB)}.json`);
+        expect(cachePathA).not.toBe(cachePathB);
+        expect(lockPathA).not.toBe(lockPathB);
+        // Same directory, differing only by the config-dir hash suffix.
+        expect(path.dirname(cachePathA)).toBe(path.dirname(cachePathB));
     });
 });
 
