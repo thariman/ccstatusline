@@ -65,14 +65,14 @@ export const SettingsSchema = z.object({
             ],
             [
                 { id: 'l2-label', type: 'custom-text', customText: 'Curr ' },
-                { id: 'l2-session', type: 'session-usage', color: 'green', rawValue: true, metadata: { display: 'progress', cursor: 'true' } },
+                { id: 'l2-session', type: 'session-usage', color: 'green', rawValue: true, metadata: { display: 'progress-short', cursor: 'true' } },
                 { id: 'l2-reset', type: 'reset-timer', color: 'green', rawValue: true, metadata: { display: 'time' } },
                 { id: 'l2-sep', type: 'separator', color: 'gray', character: ' | ' },
                 { id: 'l2-credits', type: 'extra-usage-used', rawValue: false, metadata: { hideIfDisabled: 'true' } }
             ],
             [
                 { id: 'l3-label', type: 'custom-text', color: 'white', customText: 'Fable' },
-                { id: 'l3-fable', type: 'fable-weekly-usage', color: 'green', rawValue: true, metadata: { display: 'progress', invert: 'false' } },
+                { id: 'l3-fable', type: 'fable-weekly-usage', color: 'green', rawValue: true, metadata: { display: 'progress-short', invert: 'false' } },
                 { id: 'l3-reset', type: 'weekly-reset-timer', color: 'green', rawValue: true, metadata: { display: 'time' } },
                 { id: 'l3-sep1', type: 'separator', color: 'gray', character: ' | ' },
                 { id: 'l3-label2', type: 'custom-text', color: 'white', customText: 'wkly ' },
