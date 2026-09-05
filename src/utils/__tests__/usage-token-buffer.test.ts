@@ -1,5 +1,8 @@
 import * as childProcess from 'child_process';
+import * as fs from 'fs';
 import { createRequire } from 'module';
+import * as os from 'os';
+import * as path from 'path';
 import type { Mock } from 'vitest';
 import {
     afterEach,
@@ -23,13 +26,27 @@ const { execFileSync: realExecFileSync } = require('node:child_process') as { ex
 const mockedExecFileSync = childProcess.execFileSync as Mock;
 
 describe('getUsageToken dump-keychain behavior', () => {
+    // Point CLAUDE_CONFIG_DIR at an empty temp dir so a real
+    // ~/.claude/.credentials.json on the host can't satisfy the lookup
+    // before the keychain scan under test runs.
+    let configDir: string;
+    const originalConfigDir = process.env.CLAUDE_CONFIG_DIR;
+
     beforeEach(() => {
+        configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccsl-config-'));
+        process.env.CLAUDE_CONFIG_DIR = configDir;
         mockedExecFileSync.mockReset();
         mockedExecFileSync.mockImplementation(realExecFileSync);
         vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin');
     });
 
     afterEach(() => {
+        if (originalConfigDir === undefined) {
+            delete process.env.CLAUDE_CONFIG_DIR;
+        } else {
+            process.env.CLAUDE_CONFIG_DIR = originalConfigDir;
+        }
+        fs.rmSync(configDir, { recursive: true, force: true });
         vi.restoreAllMocks();
         mockedExecFileSync.mockReset();
         mockedExecFileSync.mockImplementation(realExecFileSync);
