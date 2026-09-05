@@ -26,6 +26,7 @@ import {
     getVoiceConfig,
     installStatusLine,
     isClaudeCodeVersionAtLeast,
+    isExecutableAvailable,
     isInstalled,
     isKnownCommand,
     loadClaudeSettings,
@@ -921,5 +922,18 @@ describe('getSandboxConfig', () => {
         writeRawProjectSettings(JSON.stringify({ sandbox: { network: {} } }));
         writeRawProjectLocalSettings(JSON.stringify({ effortLevel: 'low' }));
         expect(getSandboxConfig(testSandboxProjectDir)).toEqual({ enabled: true });
+    });
+});
+
+describe('isExecutableAvailable', () => {
+    it('finds executables by scanning PATH without shelling out', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccsl-bin-'));
+        const bin = path.join(dir, process.platform === 'win32' ? 'fakebunx.CMD' : 'fakebunx');
+        fs.writeFileSync(bin, '', { mode: 0o755 });
+        const env = { PATH: `${dir}${path.delimiter}/nonexistent-dir` };
+        expect(isExecutableAvailable('fakebunx', env)).toBe(true);
+        expect(isExecutableAvailable('definitely-missing-cmd', env)).toBe(false);
+        expect(isExecutableAvailable('fakebunx', { PATH: '' })).toBe(false);
+        fs.rmSync(dir, { recursive: true, force: true });
     });
 });

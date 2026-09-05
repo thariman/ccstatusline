@@ -243,14 +243,28 @@ export async function isInstalled(): Promise<boolean> {
     );
 }
 
-function isExecutableAvailable(executable: string): boolean {
-    try {
-        const command = process.platform === 'win32' ? `where ${executable}` : `which ${executable}`;
-        execSync(command, { stdio: 'ignore', windowsHide: true });
-        return true;
-    } catch {
-        return false;
+// Scans PATH directly instead of shelling out to `which`/`where`, which reported
+// every package manager as missing when `which` itself was absent or the shell
+// resolved the command differently from the interactive shell.
+export function isExecutableAvailable(executable: string, env: NodeJS.ProcessEnv = process.env): boolean {
+    const pathEnv = env.PATH ?? env.Path ?? '';
+    const extensions = process.platform === 'win32'
+        ? (env.PATHEXT ?? '.EXE;.CMD;.BAT;.COM').split(';')
+        : [''];
+    for (const dir of pathEnv.split(path.delimiter)) {
+        if (!dir) {
+            continue;
+        }
+        for (const ext of extensions) {
+            try {
+                fs.accessSync(path.join(dir, executable + ext), fs.constants.X_OK);
+                return true;
+            } catch {
+                // not here, keep scanning
+            }
+        }
     }
+    return false;
 }
 
 export function isNpmAvailable(): boolean {
