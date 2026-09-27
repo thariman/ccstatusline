@@ -1,8 +1,5 @@
 import * as childProcess from 'child_process';
-import * as fs from 'fs';
 import { createRequire } from 'module';
-import * as os from 'os';
-import * as path from 'path';
 import type { Mock } from 'vitest';
 import {
     afterEach,
@@ -25,28 +22,29 @@ const require = createRequire(import.meta.url);
 const { execFileSync: realExecFileSync } = require('node:child_process') as { execFileSync: typeof childProcess.execFileSync };
 const mockedExecFileSync = childProcess.execFileSync as Mock;
 
-describe('getUsageToken dump-keychain behavior', () => {
-    // Point CLAUDE_CONFIG_DIR at an empty temp dir so a real
-    // ~/.claude/.credentials.json on the host can't satisfy the lookup
-    // before the keychain scan under test runs.
-    let configDir: string;
-    const originalConfigDir = process.env.CLAUDE_CONFIG_DIR;
+const ORIGINAL_CLAUDE_CONFIG_DIR = process.env.CLAUDE_CONFIG_DIR;
+const ORIGINAL_SECURESTORAGE_CONFIG_DIR = process.env.CLAUDE_SECURESTORAGE_CONFIG_DIR;
 
+describe('getUsageToken dump-keychain behavior', () => {
     beforeEach(() => {
-        configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccsl-config-'));
-        process.env.CLAUDE_CONFIG_DIR = configDir;
+        // The candidate scan under test only runs for the default profile, so
+        // shed any config-dir variables leaking in from the environment.
+        delete process.env.CLAUDE_CONFIG_DIR;
+        delete process.env.CLAUDE_SECURESTORAGE_CONFIG_DIR;
         mockedExecFileSync.mockReset();
         mockedExecFileSync.mockImplementation(realExecFileSync);
         vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin');
     });
 
     afterEach(() => {
-        if (originalConfigDir === undefined) {
-            delete process.env.CLAUDE_CONFIG_DIR;
-        } else {
-            process.env.CLAUDE_CONFIG_DIR = originalConfigDir;
+        delete process.env.CLAUDE_CONFIG_DIR;
+        delete process.env.CLAUDE_SECURESTORAGE_CONFIG_DIR;
+        if (ORIGINAL_CLAUDE_CONFIG_DIR !== undefined) {
+            process.env.CLAUDE_CONFIG_DIR = ORIGINAL_CLAUDE_CONFIG_DIR;
         }
-        fs.rmSync(configDir, { recursive: true, force: true });
+        if (ORIGINAL_SECURESTORAGE_CONFIG_DIR !== undefined) {
+            process.env.CLAUDE_SECURESTORAGE_CONFIG_DIR = ORIGINAL_SECURESTORAGE_CONFIG_DIR;
+        }
         vi.restoreAllMocks();
         mockedExecFileSync.mockReset();
         mockedExecFileSync.mockImplementation(realExecFileSync);
