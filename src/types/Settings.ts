@@ -51,7 +51,7 @@ export const SettingsSchema = z.object({
     version: z.number().default(CURRENT_VERSION),
     lines: z.array(z.array(WidgetItemSchema))
         .min(1)
-        // Fork default: thariman's layout — model/context/cwd/git on line 1,
+        // Fork default: thariman's layout — model/context/cwd/git/remote control on line 1,
         // session usage + credits on line 2, Fable + weekly usage on line 3.
         .default([
             [
@@ -62,7 +62,9 @@ export const SettingsSchema = z.object({
                 { id: 'l1-sep2', type: 'separator', color: 'gray', character: ' | ' },
                 { id: 'l1-cwd', type: 'current-working-dir', color: 'white', rawValue: true, metadata: { segments: '1', abbreviateHome: 'true' } },
                 { id: 'l1-branch', type: 'git-branch', color: 'gray' },
-                { id: 'l1-clean', type: 'git-clean-status', metadata: { hideNoGit: 'true' } }
+                { id: 'l1-clean', type: 'git-clean-status', metadata: { hideNoGit: 'true' } },
+                { id: 'l1-sep3', type: 'separator', color: 'gray', character: ' | ' },
+                { id: 'l1-remote', type: 'remote-control-status', color: 'blue', metadata: { format: 'icon-text' } }
             ],
             [
                 { id: 'l2-label', type: 'custom-text', customText: 'Curr ' },
